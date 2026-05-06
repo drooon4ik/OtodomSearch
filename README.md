@@ -24,7 +24,7 @@ Generates an Otodom.pl search URL for apartments within 700m of any Warsaw metro
 ## Usage
 
 ```bash
-pip install shapely
+pip install -r requirements.txt
 python metro_url.py
 ```
 

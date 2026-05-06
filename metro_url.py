@@ -44,10 +44,49 @@ STATIONS = [
     (52.2907703, 20.9298678),  # Młociny
 ]
 
-RADIUS_M = 700
-TARGET_POINTS = 300
-AREA_MIN = 50
-AREA_MAX = 60
+# ── Параметры поиска ──────────────────────────────────────────────────────────
+RADIUS_M      = 900     # радиус вокруг каждой станции метро, метры
+AREA_MIN      = 35      # площадь от, м²
+AREA_MAX      = 60      # площадь до, м²
+YEAR_MIN      = 1950    # год постройки от
+
+# Материал стен — доступные значения:
+#   BRICK               — Cegła (кирпич)
+#   WOOD                — Drewno (дерево)
+#   BREEZEBLOCK         — Pustak (пустотелый блок)
+#   KERAMZYT            — Keramzyt (керамзитобетон)
+#   LARGE_PANEL         — Wielka płyta (крупная панель)
+#   CONCRETE            — Beton (бетон)
+#   SILIKAT             — Silikat (силикатный кирпич)
+#   CELLULAR_CONCRETE   — Beton komórkowy (ячеистый бетон / газобетон)
+#   OTHER               — Inny (другое)
+#   REINFORCED_CONCRETE — Żelbet (железобетон)
+BUILDING_MATERIALS = ["BRICK", "BREEZEBLOCK", "SILIKAT", "REINFORCED_CONCRETE"]
+
+# Дополнительные фильтры — доступные значения:
+#   BALCONY          — Balkon (балкон)
+#   TERRACE          — Taras (терраса)
+#   GARAGE           — Garaż (гараж)
+#   BASEMENT         — Piwnica (подвал)
+#   LIFT             — Winda (лифт)
+#   SEPARATE_KITCHEN — Oddzielna kuchnia (отдельная кухня)
+#   GARDEN           — Ogród (сад)
+#   TWO_STOREY       — Dwie kondygnacje (двухуровневая)
+#   HAS_PHOTOS       — Zdjęcia (только с фото)
+EXTRAS = ["GARAGE"]
+
+# Тип сделки: sprzedaz (продажа) | wynajem (аренда)
+TRANSACTION = "sprzedaz"
+
+# Тип недвижимости: mieszkanie | dom | dzialka | lokal | haleimagazyny | garaz
+PROPERTY_TYPE = "mieszkanie"
+
+# Сортировка: DEFAULT | PRICE | PRICE_PER_M | AREA | LATEST
+SORT_BY    = "DEFAULT"
+SORT_DIR   = "DESC"   # ASC | DESC
+
+TARGET_POINTS = 300   # макс. точек в полигоне (технический параметр)
+# ─────────────────────────────────────────────────────────────────────────────
 
 def make_circle(lat, lon, n=32):
     lat_deg = RADIUS_M / 111320
@@ -107,18 +146,25 @@ def build_url(stations):
     lats = [p[0] for p in coords]; lons = [p[1] for p in coords]
     bbox = f"{min(lons)},{max(lats)},{max(lons)},{min(lats)}"
 
+    materials = urllib.parse.quote("[" + "%2C".join(BUILDING_MATERIALS) + "]")
+    extras    = urllib.parse.quote("[" + "%2C".join(EXTRAS) + "]")
+
     params = (
-        f"limit=36&ownerTypeSingleSelect=ALL&by=DEFAULT&direction=DESC&viewType=map"
+        f"limit=36&ownerTypeSingleSelect=ALL&by={SORT_BY}&direction={SORT_DIR}&viewType=map"
         f"&areaMin={AREA_MIN}&areaMax={AREA_MAX}"
+        f"&buildYearMin={YEAR_MIN}"
+        f"&buildingMaterial={materials}"
+        f"&extras={extras}"
         f"&mapBounds={urllib.parse.quote(bbox)}&geometry={urllib.parse.quote(encoded)}"
     )
-    return (f"https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/mazowieckie/warszawa/warszawa/warszawa?{params}",
+    return (f"https://www.otodom.pl/pl/wyniki/{TRANSACTION}/{PROPERTY_TYPE}/mazowieckie/warszawa/warszawa/warszawa?{params}",
             len(coords))
 
 url, pts = build_url(STATIONS)
 print(f"Points: {pts}")
 print(url)
 
-with open("otodom_metro.txt", "w") as f:
-    f.write(url + "\n")
-print("Saved to otodom_metro.txt")
+
+import subprocess
+subprocess.run("pbcopy", input=url.encode(), check=True)
+print("URL copied to clipboard")
