@@ -252,8 +252,8 @@ TRAM_STOPS = [
 ]
 
 # ── Параметры поиска ──────────────────────────────────────────────────────────
-USE_METRO     = false    # включить станции метро (M1 + M2)
-USE_TRAMS     = True    # включить остановки трамваев через центр (4,7,9,10,14,15,18,22,24,25)
+USE_METRO     = True    # включить станции метро (M1 + M2)
+USE_TRAMS     = True    # включить остановки трамваев с приоритетом (9, 15, 17)
 RADIUS_M      = 900     # радиус вокруг каждой станции/остановки, метры
 AREA_MIN      = 35      # площадь от, м²
 AREA_MAX      = 60      # площадь до, м²
@@ -373,7 +373,13 @@ stations = []
 if USE_METRO:
     stations += METRO_STATIONS
 if USE_TRAMS:
-    stations += TRAM_STOPS
+    # Фильтруем трамвайные остановки по bbox станций метро
+    lat_min = min(lat for lat, lon in METRO_STATIONS)
+    lat_max = max(lat for lat, lon in METRO_STATIONS)
+    lon_min = min(lon for lat, lon in METRO_STATIONS)
+    lon_max = max(lon for lat, lon in METRO_STATIONS)
+    stations += [(lat, lon) for lat, lon in TRAM_STOPS
+                 if lat_min <= lat <= lat_max and lon_min <= lon <= lon_max]
 
 url, pts = build_url(stations)
 print(f"Points: {pts}")
