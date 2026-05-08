@@ -42,14 +42,14 @@ def fetch_bbox(tag: str) -> list[dict]:
     for el in r.json().get("elements", []):
         lat = el.get("lat") or el.get("center", {}).get("lat")
         lon = el.get("lon") or el.get("center", {}).get("lon")
-        if lat and lon and near_any_station(lat, lon):
-            result.append({"lat": lat, "lon": lon,
-                           "name": el.get("tags", {}).get("name", "")})
+        name = el.get("tags", {}).get("name", "")
+        if lat and lon and near_any_station(lat, lon) and name.lower() not in POI_EXCLUDE_NAMES:
+            result.append({"lat": lat, "lon": lon, "name": name})
     return result
 
 
 CATEGORIES = {
-    "supermarket": '[shop~"supermarket|convenience"]',
+    "supermarket": '[shop="supermarket"]',
     "school":      '[amenity~"school|kindergarten"]',
 }
 
