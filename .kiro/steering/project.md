@@ -7,18 +7,15 @@ Multi-city, multi-purpose real estate search tool built on Otodom. Supports buy 
 Each search scenario is a **profile** in `profiles/{name}/`:
 ```
 profiles/
-  warsaw-buy/
-    config.py    # all profile-specific parameters
-    data/        # listings, enriched, scored, snapshots
-  krakow-rent/
-    config.py
-    data/
+  warsaw-buy/    # покупка, Варшава, метро M1+M2
+  krakow-rent/   # аренда, Краков, тихие зелёные районы с паркоместом
 ```
 
 Run any script with `--profile=NAME` (default: `warsaw-buy`):
 ```bash
-python scraper.py --profile=warsaw-buy
-python score.py --profile=krakow-rent
+./run.sh warsaw-buy          # полный прогон
+./run.sh krakow-rent
+python3 scraper.py --profile=warsaw-buy --headless  # без GUI
 ```
 
 ## Pipeline
@@ -32,48 +29,44 @@ tracker.py → data/snapshots/
 
 ## Module Responsibilities
 - **profile_loader.py** — `load_profile(name)` returns (config_module, data_dir); `profile_arg()` reads `--profile=` from argv
-- **config_base.py** — shared constants across all profiles: `RENOVATION_COST`, `CONDITION_SCORE`, `MATERIAL_SCORE`, `DESC_SIGNALS`
-- **profiles/*/config.py** — profile-specific: city, voivodeship, transaction type, transit points, scoring weights, district scores, search params
-- **metro_url.py** — builds Otodom search URL from profile; path and query params fully dynamic via `CITY`, `VOIVODESHIP`, `TRANSACTION`, `PROPERTY_TYPE`, `SEARCH_PARAMS`
-- **scraper.py** — Playwright sync scraper; uses `build_url()` from metro_url, writes to profile's data dir
-- **fetch_poi.py** — Overpass API for POI near transit points; writes to profile's data dir
+- **config_base.py** — shared constants: `RENOVATION_COST`, `CONDITION_SCORE`, `MATERIAL_SCORE`, `DESC_SIGNALS`
+- **profiles/*/config.py** — all profile-specific parameters
+- **metro_url.py** — builds Otodom search URL; path and query params fully dynamic from profile
+- **scraper.py** — Playwright sync scraper; `--headless` flag for automated runs; price parsing handles both `zł` (buy) and `zł/mies.` (rent) formats
+- **fetch_poi.py** — Overpass API; categories driven by `POI_WEIGHTS` keys in profile (supermarket, park, school, university)
 - **enrich.py** — fetches listing details, writes enriched.json/csv, calls tracker
-- **score.py** — computes investment_score using profile weights + config_base constants
+- **score.py** — computes score using profile weights; `APPLY_RENOVATION_COST=False` skips renovation cost for rent profiles; `DESC_SIGNALS_EXTRA` in profile merges with base signals
 - **tracker.py** — snapshots enriched.json, detects price changes / new / removed listings
 
 ## Profile Config Keys
 ```python
-CITY, VOIVODESHIP          # e.g. "warszawa", "mazowieckie"
-TRANSACTION                # "sprzedaz" | "wynajem"
-PROPERTY_TYPE              # "mieszkanie"
-SEARCH_PARAMS              # dict → URL query params (only present keys are added)
-TRANSIT_POINTS             # list of (lat, lon) — metro stops, tram stops, etc.
-RADIUS_M                   # polygon radius around each transit point
-CENTER                     # (lat, lon) reference point for center_dist scoring
-UNIVERSITIES               # list of {name, lat, lon}
+CITY, VOIVODESHIP              # URL path components
+TRANSACTION                    # "sprzedaz" | "wynajem"
+PROPERTY_TYPE                  # "mieszkanie"
+APPLY_RENOVATION_COST          # True (buy) | False (rent)
+SEARCH_PARAMS                  # dict → URL query params
+TRANSIT_POINTS                 # list of (lat, lon)
+RADIUS_M                       # polygon radius per point
+CENTER                         # (lat, lon) reference for center_dist
+UNIVERSITIES                   # list of {name, lat, lon}
 POI_RADIUS_M, POI_EXCLUDE_NAMES
-SCORING_WEIGHTS            # sum = 1.0
-POI_WEIGHTS                # supermarket / school / university
-DISTRICT_SCORE             # {district_name: 0.0–1.0}
-DELAY_MIN, DELAY_MAX       # scraper delays in seconds
+SCORING_WEIGHTS                # sum = 1.0
+POI_WEIGHTS                    # {category: weight} — drives both fetch_poi and score
+DISTRICT_SCORE                 # {district_name: 0.0–1.0}
+DESC_SIGNALS_EXTRA             # optional profile-specific desc signals (merged over base)
+DELAY_MIN, DELAY_MAX
 ```
 
-## Scoring Sub-scores
-| Factor | Notes |
-|---|---|
-| price_m2_eff | price/m² + renovation cost (from config_base.RENOVATION_COST) |
-| build_year | parabolic, peak 2010–2020 |
-| floor | ground/top floor penalized |
-| desc | balcony, loggia, terrace, quiet, two-sided (from config_base.DESC_SIGNALS) |
-| district | quality-of-life per district (profile-specific) |
-| center_dist | distance to CENTER point |
-| poi | weighted distance to supermarket/school/university |
-| material | from config_base.MATERIAL_SCORE |
-| market | secondary > primary (buy profiles) |
+## Key Scoring Notes
+- `price_m2_eff`: for buy = (price + reno*area)/area; for rent = price/area (no reno)
+- Floor: ground/1st floor with garden (`ogródek` in features/desc) → score 1.0 instead of penalty
+- POI scoring is fully dynamic — iterates `POI_WEIGHTS` keys, works with any categories
+- `DESC_SIGNALS_EXTRA` in profile merges with `config_base.DESC_SIGNALS`
 
 ## Conventions
-- All profile parameters → `profiles/*/config.py`, never hardcode in modules
-- Shared/universal constants → `config_base.py`
-- `profile_loader.load_profile()` is the single entry point for config + data path
-- Playwright: sync_playwright patterns in scraper.py
-- Data files always in `profiles/{name}/data/`
+- All profile parameters → `profiles/*/config.py`
+- Shared constants → `config_base.py`
+- `profile_loader.load_profile()` is the single entry point
+- Playwright: sync_playwright, `--headless` flag in scraper
+- Data always in `profiles/{name}/data/`
+- After structural changes → update this file

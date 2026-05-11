@@ -19,12 +19,10 @@ metro_url.py → scraper.py → profiles/{name}/data/listings.json
 
 ## Профили
 
-| Профиль | Город | Тип | Площадь |
-|---|---|---|---|
-| `warsaw-buy` | Варшава | покупка | 35–60 м² |
-| `krakow-rent` | Краков | аренда | 45–60 м² |
-
-Каждый профиль — отдельная папка `profiles/{name}/` со своим `config.py` и `data/`.
+| Профиль | Город | Тип | Площадь | Особенности |
+|---|---|---|---|---|
+| `warsaw-buy` | Варшава | покупка | 35–60 м² | метро M1+M2, ≤30 мин до центра |
+| `krakow-rent` | Краков | аренда | 45–60 м² | тихие зелёные районы, только с паркоместом |
 
 ## Использование
 
@@ -32,16 +30,18 @@ metro_url.py → scraper.py → profiles/{name}/data/listings.json
 pip install -r requirements.txt
 python3 -m playwright install chromium
 
-# Запуск для конкретного профиля (по умолчанию warsaw-buy)
-python3 scraper.py --profile=warsaw-buy          # собрать объявления
-python3 scraper.py --profile=warsaw-buy --pages=2  # тест на 2 страницах
+# Полный прогон (1 страница для теста)
+./run.sh warsaw-buy
+./run.sh krakow-rent
 
-python3 fetch_poi.py --profile=warsaw-buy        # загрузить POI из OSM (один раз)
+# Или по шагам
+python3 scraper.py  --profile=warsaw-buy           # собрать объявления
+python3 fetch_poi.py --profile=warsaw-buy          # загрузить POI из OSM (один раз)
+python3 enrich.py   --profile=warsaw-buy           # обогатить + вызвать tracker
+python3 score.py    --profile=warsaw-buy           # пересчитать скоры
 
-python3 enrich.py --profile=warsaw-buy           # обогатить + вызвать tracker
-python3 score.py --profile=warsaw-buy            # пересчитать скоры
-
-python3 tracker.py --profile=warsaw-buy          # отчёт об изменениях
+# Для автоматических прогонов (без GUI браузера)
+python3 scraper.py --profile=warsaw-buy --headless
 ```
 
 `enrich.py` автоматически вызывает `tracker.py` в конце.
@@ -51,6 +51,7 @@ python3 tracker.py --profile=warsaw-buy          # отчёт об измене�
 ```
 ├── config_base.py          # общие константы (ремонт, материалы, сигналы)
 ├── profile_loader.py       # load_profile(name) → (config, data_dir)
+├── run.sh                  # полный прогон: ./run.sh {profile}
 ├── profiles/
 │   ├── warsaw-buy/
 │   │   ├── config.py       # параметры профиля
@@ -61,31 +62,34 @@ python3 tracker.py --profile=warsaw-buy          # отчёт об измене�
 ├── scraper.py              # парсер Otodom (Playwright)
 ├── metro_url.py            # генерация URL с полигоном
 ├── enrich.py               # обогащение деталями + features + description
-├── fetch_poi.py            # инфраструктура из OpenStreetMap
-├── score.py                # инвестиционный скоринг
+├── fetch_poi.py            # инфраструктура из OpenStreetMap (supermarket, park, school)
+├── score.py                # инвестиционный / жилой скоринг
 ├── tracker.py              # отслеживание изменений между прогонами
 └── .env                    # GOOGLE_API_KEY (не в git)
 ```
 
 ## Конфигурация профиля
 
-Каждый `profiles/{name}/config.py` содержит:
-
 | Параметр | Описание |
 |---|---|
 | `CITY`, `VOIVODESHIP` | город и воеводство для URL Otodom |
 | `TRANSACTION` | `sprzedaz` или `wynajem` |
+| `APPLY_RENOVATION_COST` | `True` для покупки, `False` для аренды |
 | `SEARCH_PARAMS` | словарь фильтров поиска (только нужные ключи) |
-| `TRANSIT_POINTS` | координаты станций / остановок |
+| `TRANSIT_POINTS` | координаты станций / остановок / ключевых точек |
 | `RADIUS_M` | радиус полигона вокруг каждой точки |
 | `CENTER` | точка отсчёта для `center_dist` |
 | `SCORING_WEIGHTS` | веса скоринга (сумма = 1.0) |
+| `POI_WEIGHTS` | категории POI и их веса (supermarket / park / university / school) |
 | `DISTRICT_SCORE` | качество жизни по районам |
+| `DESC_SIGNALS_EXTRA` | дополнительные сигналы из описания (опционально) |
 | `DELAY_MIN/MAX` | паузы между страницами скрапера |
 
 Общие константы (`RENOVATION_COST`, `MATERIAL_SCORE`, `DESC_SIGNALS`) — в `config_base.py`.
 
-## Веса скоринга (warsaw-buy)
+## Веса скоринга
+
+### warsaw-buy (покупка)
 
 | Фактор | Вес | Примечание |
 |---|---|---|
@@ -99,10 +103,24 @@ python3 tracker.py --profile=warsaw-buy          # отчёт об измене�
 | Материал стен | 0.05 | кирпич 1.0 / силикат 0.8 / бетон 0.7 / панель 0.6 |
 | Тип рынка | 0.05 | вторичный 1.0 / первичный 0.6 |
 
+### krakow-rent (аренда, личное проживание)
+
+| Фактор | Вес | Примечание |
+|---|---|---|
+| Цена/м² аренды | 0.40 | без учёта ремонта |
+| Этаж | 0.10 | партер/1й с садиком = 1.0, иначе штраф |
+| Бонусы из объявления | 0.10 | садик, вид на реку/парк, тихая округа |
+| Близость к POI | 0.10 | супермаркет×0.45 + парк×0.35 + университет×0.20 |
+| Расстояние до центра | 0.08 | Rynek Główny |
+| Район | 0.08 | Zwierzyniec/Wola Justowska 1.0 / Stare Miasto 0.55 |
+| Год постройки | 0.07 | |
+| Материал стен | 0.05 | |
+| Тип рынка | 0.02 | менее важен для аренды |
+
 ## Технические особенности Otodom
 
 - Полигон работает **только** в `viewType=map` — в режиме листинга игнорируется
 - Виртуальный список рендерится при скролле, данные уже в DOM
 - Пагинация через `&page=N`, максимум 36 объявлений на странице
 - `features` (балкон, лифт и др.) живут в `ad.features[]`, не в `characteristics`
-- Для автоматических прогонов: `--headless` флаг в scraper.py
+- Цена аренды: `3 500 zł\n+ czynsz: 800 zł/miesiąc` — парсится первая строка
