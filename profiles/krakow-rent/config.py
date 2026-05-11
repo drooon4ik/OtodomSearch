@@ -16,21 +16,29 @@ SEARCH_PARAMS = {
 DELAY_MIN = 3.0
 DELAY_MAX = 6.0
 
-# ── Транзитные точки — районы с парковкой, парками и университетами ───────────
+# ── Транзитные точки — тихие зелёные районы, машина есть ────────────────────
 TRANSIT_POINTS = [
     # Krowodrza / Bronowice — жилые кварталы, дворовые парковки, рядом Błonia и AGH/UJ
     (50.0682, 19.9048),  # AGH / al. Mickiewicza
     (50.0720, 19.9150),  # Krowodrza Górka
     (50.0750, 19.9200),  # Bronowice Małe
     (50.0770, 19.9050),  # Bronowice Wielkie
-    # Zwierzyniec / Salwator — тихий, зелёный, у Błonia и Lasu Wolskiego
+    # Zwierzyniec / Salwator — самый зелёный, Błonia, Las Wolski
     (50.0600, 19.9100),  # Salwator
     (50.0630, 19.9050),  # Zwierzyniec
-    # Dębniki — правый берег Вислы, тихо, парковки есть
+    # Wola Justowska — элитный, лесистый, тихий
+    (50.0720, 19.8850),  # Wola Justowska centrum
+    (50.0680, 19.8750),  # Przegorzały
+    # Dębniki / Kobierzyn — тихо, зелено, Wisła
     (50.0450, 19.9250),  # Dębniki centrum
-    # Grzegórzki — компромисс: близко к центру, есть парковки во дворах
+    (50.0350, 19.9100),  # Kobierzyn
+    # Łagiewniki — лес, тихо, у sanktuarium
+    (50.0200, 19.9350),  # Łagiewniki
+    # Prądnik Czerwony / Biały — зелёные спальные, доступные
+    (50.0900, 19.9600),  # Prądnik Czerwony
+    (50.0950, 19.9350),  # Prądnik Biały
+    # Grzegórzki — компромисс: близко к центру
     (50.0600, 19.9600),  # Rondo Grzegórzeckie
-    (50.0650, 19.9700),  # Grzegórzki / Mogilska
 ]
 
 # ── Центр города ──────────────────────────────────────────────────────────────
@@ -70,28 +78,31 @@ POI_WEIGHTS = {
 }
 
 DISTRICT_SCORE = {
-    # Топ — тихие зелёные районы, комфорт для жизни
-    "Zwierzyniec":      1.00,  # тихий, зелёный, у Błonia и Lasu Wolskiego
-    "Salwator":         0.98,
-    "Krowodrza":        0.95,
-    "Bronowice":        0.93,
-    "Dębniki":          0.90,
-    "Ruczaj":           0.87,  # современный, у кампуса UJ
-    # Хорошие, но оживлённее
-    "Grzegórzki":       0.83,
-    "Podgórze":         0.80,
-    "Zabłocie":         0.78,
-    # Туристические — шум, толпы, особенно летом
-    "Kazimierz":        0.65,
-    "Stare Miasto":     0.55,  # худший для жизни — туристы круглый год
-    # Норма / спальные
-    "Prądnik Czerwony": 0.70,
-    "Prądnik Biały":    0.68,
-    "Łagiewniki":       0.65,
-    # Далеко от центра
-    "Nowa Huta":        0.45,
-    "Mistrzejowice":    0.50,
-    "Bieńczyce":        0.48,
+    # Топ — тихие, зелёные, престижные
+    "Wola Justowska":   1.00,  # лес, элитный, тихо
+    "Przegorzały":      0.98,  # над Вислой, лесистый
+    "Zwierzyniec":      0.97,  # Błonia, Las Wolski
+    "Salwator":         0.95,
+    # Хорошие жилые
+    "Krowodrza":        0.90,
+    "Bronowice":        0.88,
+    "Dębniki":          0.87,
+    "Kobierzyn":        0.85,  # тихо, зелено, доступно
+    "Łagiewniki":       0.82,  # лес, санктуарий, тихо
+    # Спальные зелёные
+    "Prądnik Czerwony": 0.75,
+    "Prądnik Biały":    0.73,
+    # Оживлённее
+    "Grzegórzki":       0.80,
+    "Podgórze":         0.75,
+    "Zabłocie":         0.72,
+    # Туристические — шум
+    "Kazimierz":        0.60,
+    "Stare Miasto":     0.50,
+    # Далеко
+    "Nowa Huta":        0.40,
+    "Mistrzejowice":    0.45,
+    "Bieńczyce":        0.43,
 }
 
 # ── Полигон ───────────────────────────────────────────────────────────────────
