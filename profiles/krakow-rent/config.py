@@ -37,8 +37,7 @@ TRANSIT_POINTS = [
     # Prądnik Czerwony / Biały — зелёные спальные, доступные
     (50.0900, 19.9600),  # Prądnik Czerwony
     (50.0950, 19.9350),  # Prądnik Biały
-    # Grzegórzki — компромисс: близко к центру
-    (50.0600, 19.9600),  # Rondo Grzegórzeckie
+    # Grzegórzki — убрано: шум от Tauron Arena и трасс
 ]
 
 # ── Центр города ──────────────────────────────────────────────────────────────
@@ -93,7 +92,7 @@ DISTRICT_SCORE = {
     "Prądnik Czerwony": 0.75,
     "Prądnik Biały":    0.73,
     # Оживлённее
-    "Grzegórzki":       0.80,
+    "Grzegórzki":       0.60,  # шум от Tauron Arena и трасс
     "Podgórze":         0.75,
     "Zabłocie":         0.72,
     # Туристические — шум
