@@ -71,7 +71,7 @@ except FileNotFoundError:
 # ── Сырые метрики ─────────────────────────────────────────────────────────────
 for item in listings:
     area = float(str(item.get("area","0")).replace(",",".").split()[0]) or 1
-    price_str = str(item.get("price","0")).replace("\xa0","").replace(" ","").replace("zł","").replace(",",".")
+    price_str = str(item.get("price","0")).replace("\xa0","").replace(" ","").replace("zł/mies.","").replace("zł","").replace(",",".")
     try:
         price_num = float(price_str) if price_str not in ("","?") else 0.0
     except ValueError:

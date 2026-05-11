@@ -37,7 +37,7 @@ def collect(page, new_items):
             continue
         spans = [s.inner_text().strip().replace("\xa0", " ")
                  for s in art.query_selector_all("span")]
-        price_txt = next((s for s in spans if s.endswith("zł")), "?")
+        price_txt = next((s for s in spans if s.endswith("zł") or "zł/mies" in s), "?")
         area_txt  = next((s for s in spans if s.endswith("m²") and "/" not in s), "?")
         ppm_txt   = next((s for s in spans if "zł/m²" in s), "?")
         item = {
