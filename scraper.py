@@ -114,8 +114,6 @@ with sync_playwright() as p:
         listings.extend(items)
         print(f"стр. {p_num} — {len(items)} объявлений")
 
-    print("Пауза 20 сек...")
-    time.sleep(20)
     browser.close()
 
 listings.sort(key=lambda x: x["price_m2_num"] or float("inf"))
