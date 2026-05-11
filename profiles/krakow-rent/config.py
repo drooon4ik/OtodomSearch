@@ -112,5 +112,13 @@ DISTRICT_SCORE = {
     "Bieńczyce":        0.43,
 }
 
+# ── Сигналы из объявления (дополнение к config_base.DESC_SIGNALS) ────────────
+# Переопределяет config_base при наличии — score.py мёржит профильные поверх базовых
+DESC_SIGNALS_EXTRA = {
+    "ogrodek": ("desc", r"ogr[oó]d|ogr[oó]dek|taras przy gruncie", 0.40),  # садик = большой плюс
+    "widok":   ("desc", r"widok na (rzek|park|las|wisł)",           0.30),  # вид на природу
+    "cisza":   ("desc", r"cicha okolica|spokojna okolica|bez ruchu", 0.20),
+}
+
 # ── Полигон ───────────────────────────────────────────────────────────────────
 RADIUS_M = 900

@@ -3,9 +3,11 @@
 """
 import json, csv, math, re, datetime
 from profile_loader import load_profile, profile_arg
-from config_base import RENOVATION_COST, MATERIAL_SCORE, DESC_SIGNALS
+from config_base import RENOVATION_COST, MATERIAL_SCORE, DESC_SIGNALS as _BASE_DESC_SIGNALS
 
 cfg, data_dir = load_profile(profile_arg())
+# Мёрж: профильные сигналы поверх базовых
+DESC_SIGNALS = {**_BASE_DESC_SIGNALS, **getattr(cfg, "DESC_SIGNALS_EXTRA", {})}
 WEIGHTS       = cfg.SCORING_WEIGHTS
 POI_WEIGHTS   = cfg.POI_WEIGHTS
 DISTRICT_SCORE = cfg.DISTRICT_SCORE
@@ -105,8 +107,12 @@ for item in listings:
         floor = int(str(item.get("floor","2")).replace("parter","0").split()[0])
         total = int(item.get("floors_total") or 5)
         item["_floor_num"] = floor
-        if floor == 0:         item["_floor_score"] = 0.3
-        elif floor == 1:       item["_floor_score"] = 0.5
+        features = item.get("features") or []
+        desc = item.get("description") or ""
+        has_garden = any(re.search(r"ogr[oó]d|ogr[oó]dek|taras przy gruncie", f) for f in features) \
+                     or bool(re.search(r"ogr[oó]d|ogr[oó]dek|taras przy gruncie", desc))
+        if floor == 0 or floor == 1:
+            item["_floor_score"] = 1.0 if has_garden else (0.3 if floor == 0 else 0.5)
         elif floor == total:   item["_floor_score"] = 0.4
         else:                  item["_floor_score"] = 1.0
     except (ValueError, TypeError):
