@@ -71,24 +71,27 @@ POI_WEIGHTS = {
 }
 
 DISTRICT_SCORE = {
-    # Топ — тихие зелёные районы с парковками и близостью к университетам
-    "Krowodrza":       1.00,
-    "Bronowice":       0.98,
-    "Zwierzyniec":     0.97,  # самый зелёный, у Błonia и Lasu Wolskiego
-    "Salwator":        0.95,
-    "Dębniki":         0.90,
-    "Ruczaj":          0.88,  # новый кампус UJ, современная застройка
-    # Хорошие, но шумнее / меньше парковок
-    "Grzegórzki":      0.80,
-    "Podgórze":        0.75,
-    "Stare Miasto":    0.60,  # нет парковок, туристы, шум
-    "Kazimierz":       0.55,  # то же самое
-    # Далеко
+    # Топ — исторический центр, атмосфера, инфраструктура
+    "Stare Miasto":     1.00,
+    "Kazimierz":        0.98,
+    "Zwierzyniec":      0.97,  # тихий, зелёный, у Błonia
+    "Salwator":         0.95,
+    # Хорошие жилые кварталы у университетов и парков
+    "Krowodrza":        0.92,
+    "Bronowice":        0.90,
+    "Dębniki":          0.88,
+    "Ruczaj":           0.85,  # современный, у кампуса UJ
+    "Grzegórzki":       0.83,
+    "Podgórze":         0.80,
+    "Zabłocie":         0.78,
+    # Норма
     "Prądnik Czerwony": 0.70,
-    "Prądnik Biały":   0.72,
-    "Łagiewniki":      0.65,
-    "Nowa Huta":       0.40,
-    "Mistrzejowice":   0.45,
+    "Prądnik Biały":    0.68,
+    "Łagiewniki":       0.65,
+    # Далеко от центра
+    "Nowa Huta":        0.45,
+    "Mistrzejowice":    0.50,
+    "Bieńczyce":        0.48,
 }
 
 # ── Полигон ───────────────────────────────────────────────────────────────────
