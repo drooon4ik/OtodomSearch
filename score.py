@@ -71,14 +71,14 @@ except FileNotFoundError:
 # ── Сырые метрики ─────────────────────────────────────────────────────────────
 for item in listings:
     area = float(str(item.get("area","0")).replace(",",".").split()[0]) or 1
-    price_str = str(item.get("price","0")).replace("\xa0","").replace(" ","").replace("zł/mies.","").replace("zł","").replace(",",".")
+    price_str = str(item.get("price","0")).split("\n")[0].replace("\xa0","").replace(" ","").replace("zł/mies.","").replace("zł","").replace(",",".")
     try:
         price_num = float(price_str) if price_str not in ("","?") else 0.0
     except ValueError:
         price_num = 0.0
 
     condition = item.get("condition", "do zamieszkania")
-    reno_cost = RENOVATION_COST.get(condition, 500)
+    reno_cost = RENOVATION_COST.get(condition, 500) if getattr(cfg, "APPLY_RENOVATION_COST", True) else 0
     item["_area"] = area
     item["_reno_total"] = reno_cost * area
     item["_effective_price_m2"] = (price_num + reno_cost * area) / area

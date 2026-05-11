@@ -5,6 +5,7 @@ VOIVODESHIP = "malopolskie"
 # ── Параметры поиска Otodom ───────────────────────────────────────────────────
 TRANSACTION   = "wynajem"
 PROPERTY_TYPE = "mieszkanie"
+APPLY_RENOVATION_COST = False  # для аренды ремонт не учитываем
 
 SEARCH_PARAMS = {
     "areaMin":  45,
