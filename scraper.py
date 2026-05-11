@@ -83,7 +83,7 @@ def accept_cookies(page):
 listings = []
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=False)
+    browser = p.chromium.launch(headless="--headless" in sys.argv)
     pg = browser.new_page(user_agent=(
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
