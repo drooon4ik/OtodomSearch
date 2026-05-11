@@ -104,7 +104,8 @@ for item in listings:
         item["_build_year"] = 1970
 
     try:
-        floor = int(str(item.get("floor","2")).replace("parter","0").split()[0])
+        floor_str = str(item.get("floor") or "2").replace("parter","0").split()
+        floor = int(floor_str[0]) if floor_str else 2
         total = int(item.get("floors_total") or 5)
         item["_floor_num"] = floor
         features = item.get("features") or []
