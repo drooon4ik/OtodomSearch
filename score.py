@@ -3,9 +3,9 @@
 Использует poi.json для proximity scoring (если есть).
 Сохраняет в scored.json и scored.csv.
 """
-import json, csv, math
+import json, csv, math, re
 from config import (CENTER, RENOVATION_COST, SCORING_WEIGHTS as WEIGHTS,
-                    POI_EXCLUDE_NAMES, POI_WEIGHTS)
+                    POI_EXCLUDE_NAMES, POI_WEIGHTS, MATERIAL_SCORE, DESC_SIGNALS, DISTRICT_SCORE)
 
 
 def haversine(lat1, lon1, lat2, lon2) -> float:
@@ -99,9 +99,37 @@ for item in listings:
     try:
         floor = int(str(item.get("floor", "2")).replace("parter", "0").split()[0])
         total = int(item.get("floors_total") or 5)
-        item["_floor_score"] = 0.5 if floor in (0, 1, total) else 1.0
+        item["_floor_num"] = floor
+        if floor == 0:           # партер — худший: шум, безопасность, влажность
+            item["_floor_score"] = 0.3
+        elif floor == 1:         # 1-й этаж — плохо
+            item["_floor_score"] = 0.5
+        elif floor == total:     # последний — риск кровли, перегрев
+            item["_floor_score"] = 0.4
+        else:
+            item["_floor_score"] = 1.0
     except (ValueError, TypeError):
         item["_floor_score"] = 0.75
+
+    mat = str(item.get("material") or "").lower()
+    item["_material_score"] = MATERIAL_SCORE.get(mat, 0.65)
+
+    # вторичный рынок надёжнее при "жить самому": нет риска застройщика, реальное состояние
+    item["_market_score"] = 0.6 if item.get("market") == "pierwotny" else 1.0
+    item["_district_score"] = DISTRICT_SCORE.get(item.get("district", ""), 0.75)
+
+    features = item.get("features") or []
+    desc = item.get("description") or ""
+    floor_num = item.get("_floor_num", 2)
+    raw_desc = 0.0
+    for key, (source, pattern, weight) in DESC_SIGNALS.items():
+        if source == "features":
+            hit = any(re.search(pattern, f) for f in features)
+        else:
+            hit = bool(re.search(pattern, desc))
+        if hit:
+            raw_desc += weight
+    item["_desc_score"] = min(raw_desc, 1.0)
 
 def normalize_log(values: list[float]) -> list[float]:
     """Нелинейная нормализация: логарифм агрессивнее штрафует высокие значения."""
@@ -112,19 +140,44 @@ def normalize_log(values: list[float]) -> list[float]:
 # ── Нормализация и scoring ────────────────────────────────────────────────────
 def col(key): return [item[key] for item in listings]
 
+def year_score(year: int) -> float:
+    """Плато 2010–2020 = 1.0. Линейный спад к старым домам и к будущим стройкам.
+    Строящееся (год > текущего) штрафуется умеренно — риск задержки."""
+    import datetime
+    if year <= 0:
+        return 0.3
+    current = datetime.date.today().year
+    if year > current:       # ещё строится
+        return max(0.5, 1.0 - (year - current) * 0.1)
+    if 2010 <= year <= 2020:
+        return 1.0
+    if year > 2020:          # новее плато — небольшой спад (гарантии ещё действуют, но цена выше)
+        return max(0.85, 1.0 - (year - 2020) * 0.03)
+    # старше 2010
+    raw = 1.0 - ((year - 2010) / 60) ** 2
+    return max(0.1, raw)
+
 norm_price  = normalize_log(col("_effective_price_m2"))  # нелинейный штраф за высокую цену
 norm_center = normalize(col("_center_dist"))
-norm_year   = normalize_higher_better(col("_build_year"))
 norm_poi    = normalize(col("_poi_dist")) if has_poi else [0.5] * len(listings)
+
+_year_raw   = [year_score(item["_build_year"]) for item in listings]
+_yr_mn, _yr_mx = min(_year_raw), max(_year_raw)
+norm_year   = [(v - _yr_mn) / (_yr_mx - _yr_mn) if _yr_mx > _yr_mn else 1.0
+               for v in _year_raw]
 
 for i, item in enumerate(listings):
     w = WEIGHTS
     components = {
-        "s_price":  round(norm_price[i]       * w["price_m2_eff"], 3),
-        "s_center": round(norm_center[i]       * w["center_dist"],  3),
-        "s_year":   round(norm_year[i]         * w["build_year"],   3),
-        "s_floor":  round(item["_floor_score"] * w["floor"],        3),
-        "s_poi":    round(norm_poi[i]          * w["poi"],          3),
+        "s_price":    round(norm_price[i]          * w["price_m2_eff"], 3),
+        "s_center":   round(norm_center[i]          * w["center_dist"],  3),
+        "s_year":     round(norm_year[i]            * w["build_year"],   3),
+        "s_floor":    round(item["_floor_score"]    * w["floor"],        3),
+        "s_poi":      round(norm_poi[i]             * w["poi"],          3),
+        "s_material": round(item["_material_score"] * w["material"],     3),
+        "s_market":   round(item["_market_score"]   * w["market"],       3),
+        "s_desc":     round(item["_desc_score"]     * w["desc"],         3),
+        "s_district": round(item["_district_score"] * w["district"],     3),
     }
     item.update(components)
     item["score"] = round(sum(components.values()), 4)
@@ -154,10 +207,10 @@ for i, l in enumerate(listings, 1):
         poi_detail = ""
     print(f"{'':>4}  {'':>6}  {'':>6}  "
           f"{l['s_price']:>5.3f}  {l['s_center']:>5.3f}  {l['s_year']:>5.3f}  "
-          f"{l['s_floor']:>5.3f}  {l['s_poi']:>5.3f}  {poi_detail}")
+          f"{l['s_floor']:>5.3f}  {l['s_poi']:>5.3f}  {l['s_material']:>5.3f}  {poi_detail}")
 
 # ── Сохранение ────────────────────────────────────────────────────────────────
-FIELDS = ["score", "s_price", "s_center", "s_year", "s_floor", "s_poi",
+FIELDS = ["score", "s_price", "s_center", "s_year", "s_floor", "s_poi", "s_material", "s_market", "s_desc", "s_district",
           "price", "area", "price_m2", "effective_price_m2", "reno_cost_total",
           "center_dist_m", "district", "rooms", "floor", "floors_total",
           "build_year", "material", "condition", "building_type", "market", "lat", "lon", "url"]

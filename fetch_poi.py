@@ -50,14 +50,22 @@ def fetch_bbox(tag: str) -> list[dict]:
 
 CATEGORIES = {
     "supermarket": '[shop="supermarket"]',
-    "school":      '[amenity~"school|kindergarten"]',
+    "school":      '[amenity="school"]',
 }
+
+SECONDARY_KEYWORDS = ("liceum", "technikum", "ogólnokształcące", "matura")
+
+def is_secondary_school(name: str) -> bool:
+    n = name.lower()
+    return any(kw in n for kw in SECONDARY_KEYWORDS)
 
 poi = {"university": UNIVERSITIES}
 
 for cat, tag in CATEGORIES.items():
     print(f"Загружаю {cat}...", end=" ", flush=True)
     items = fetch_bbox(tag)
+    if cat == "school":
+        items = [s for s in items if is_secondary_school(s["name"])]
     poi[cat] = items
     print(f"{len(items)} в радиусе {RADIUS_M}м от станций")
     time.sleep(10)
