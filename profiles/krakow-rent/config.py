@@ -16,28 +16,36 @@ SEARCH_PARAMS = {
 DELAY_MIN = 3.0
 DELAY_MAX = 6.0
 
-# ── Транзитные точки — тихие зелёные районы, машина есть ────────────────────
+# ── Транзитные точки — тихие зелёные районы + набережная Вислы + парки ────────
 TRANSIT_POINTS = [
     # Krowodrza / Bronowice — жилые кварталы, дворовые парковки, рядом Błonia и AGH/UJ
     (50.0682, 19.9048),  # AGH / al. Mickiewicza
     (50.0720, 19.9150),  # Krowodrza Górka
     (50.0750, 19.9200),  # Bronowice Małe
     (50.0770, 19.9050),  # Bronowice Wielkie
-    # Zwierzyniec / Salwator — самый зелёный, Błonia, Las Wolski
+    # Zwierzyniec / Salwator — Błonia, Las Wolski
     (50.0600, 19.9100),  # Salwator
     (50.0630, 19.9050),  # Zwierzyniec
-    # Wola Justowska — элитный, лесистый, тихий
+    # Las Wolski и Park Decjusza — лесной массив к западу
+    (50.0680, 19.8700),  # Las Wolski / Park Decjusza
+    (50.0720, 19.8600),  # Las Wolski głębiej
+    # Wola Justowska / Przegorzały — элитный, лесистый
     (50.0720, 19.8850),  # Wola Justowska centrum
     (50.0680, 19.8750),  # Przegorzały
-    # Dębniki / Kobierzyn — тихо, зелено, Wisła
+    # Набережная Вислы — левый берег, от Zwierzyniec до Dębniki
+    (50.0550, 19.9150),  # Wisła / Bielany (przy rzece)
+    (50.0500, 19.9200),  # Wisła / Dębniki północ
     (50.0450, 19.9250),  # Dębniki centrum
+    (50.0400, 19.9300),  # Dębniki południe / Wisła
+    # Kobierzyn — тихо, зелено, Park Jerzmanowskiego
     (50.0350, 19.9100),  # Kobierzyn
-    # Łagiewniki — лес, тихо, у sanktuarium
+    # Łagiewniki — лес, тихо
     (50.0200, 19.9350),  # Łagiewniki
-    # Prądnik Czerwony / Biały — зелёные спальные, доступные
+    # Park Bednarskiego / Podgórze Skałka — правый берег, зелёный
+    (50.0430, 19.9450),  # Park Bednarskiego
+    (50.0480, 19.9530),  # Podgórze / Plac Bohaterów Getta
+    # Prądnik Czerwony — долина Prądnika, зелёная
     (50.0900, 19.9600),  # Prądnik Czerwony
-    (50.0950, 19.9350),  # Prądnik Biały
-    # Grzegórzki — убрано: шум от Tauron Arena и трасс
 ]
 
 # ── Центр города ──────────────────────────────────────────────────────────────
