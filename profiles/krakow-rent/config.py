@@ -65,9 +65,9 @@ SCORING_WEIGHTS = {
 }
 
 POI_WEIGHTS = {
-    "supermarket": 0.40,  # ежедневные покупки
-    "park":        0.35,  # прогулки — важно для жизни
-    "university":  0.25,  # близость к студенческой среде
+    "supermarket": 0.45,  # ежедневные покупки
+    "park":        0.35,  # прогулки
+    "university":  0.20,  # студенческая среда
 }
 
 DISTRICT_SCORE = {
