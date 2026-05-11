@@ -58,7 +58,7 @@ print(f"Объявлений с ценой: {len(listings)}")
 try:
     with open(data_dir / "poi.json", encoding="utf-8") as f:
         poi = json.load(f)
-    has_poi = any(poi.get(k) for k in ("supermarket", "school", "university"))
+    has_poi = any(poi.get(k) for k in POI_WEIGHTS)
     poi["supermarket"] = [s for s in poi.get("supermarket", [])
                           if not any(ex in s.get("name","").lower()
                                      for ex in cfg.POI_EXCLUDE_NAMES)]
@@ -85,13 +85,12 @@ for item in listings:
     if lat and lon:
         item["_center_dist"] = haversine(lat, lon, CENTER[0], CENTER[1])
         if has_poi:
-            d_super, item["_nearest_super"] = nearest(lat, lon, poi.get("supermarket", []))
-            d_school, item["_nearest_school"] = nearest(lat, lon, poi.get("school", []))
-            d_uni,   item["_nearest_uni"]    = nearest(lat, lon, poi.get("university", []))
-            item["_d_super"] = d_super; item["_d_school"] = d_school; item["_d_uni"] = d_uni
-            item["_poi_dist"] = (d_super * POI_WEIGHTS["supermarket"] +
-                                 d_school * POI_WEIGHTS["school"] +
-                                 d_uni    * POI_WEIGHTS["university"])
+            item["_poi_dist"] = 0
+            for cat, weight in POI_WEIGHTS.items():
+                d, best = nearest(lat, lon, poi.get(cat, []))
+                item[f"_d_{cat}"] = d
+                item[f"_nearest_{cat}"] = best
+                item["_poi_dist"] += d * weight
         else:
             item["_poi_dist"] = 0
     else:
@@ -164,9 +163,10 @@ print("-" * 110)
 for i, l in enumerate(listings, 1):
     print(f"{i:>2}  {l['score']:>6.3f}  {l['price']:>12}  {l['effective_price_m2']:>12,} zł/м²  "
           f"{l['center_dist_m']:>8}м  {l['build_year']:>4}  {l.get('district','')}")
-    if has_poi and l.get("_nearest_super"):
-        print(f"      POI: {l['_nearest_super'].get('name','?')[:20]} {l['_d_super']:.0f}м  |  "
-              f"{l['_nearest_uni'].get('name','?')[:25]} {l['_d_uni']:.0f}м")
+    if has_poi and l.get("_nearest_supermarket"):
+        poi_parts = [f"{l[f'_nearest_{cat}'].get('name','?')[:20]} {l[f'_d_{cat}']:.0f}м"
+                     for cat in POI_WEIGHTS if l.get(f"_nearest_{cat}")]
+        print(f"      POI: {'  |  '.join(poi_parts)}")
 
 # ── Сохранение ────────────────────────────────────────────────────────────────
 FIELDS = ["score","s_price","s_center","s_year","s_floor","s_poi","s_material","s_market","s_desc","s_district",

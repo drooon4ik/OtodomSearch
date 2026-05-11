@@ -55,6 +55,7 @@ def is_secondary_school(name: str) -> bool:
 CATEGORIES = {
     "supermarket": '[shop="supermarket"]',
     "school":      '[amenity="school"]',
+    "park":        '[leisure="park"]',
 }
 
 poi = {"university": cfg.UNIVERSITIES}
