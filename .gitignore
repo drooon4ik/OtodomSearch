@@ -1,6 +1,9 @@
 # secrets
 .env
 
+# macos
+.DS_Store
+
 # generated data
 data/
 
