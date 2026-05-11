@@ -1,20 +1,20 @@
 """
-Otodom full scraper — парсит все страницы, сохраняет в CSV, сортирует по цене/м².
+Otodom scraper — парсит все страницы, сохраняет в CSV, сортирует по цене/м².
 """
-import subprocess, json, csv, re, time, random
+import json, csv, re, time, random, sys
 from playwright.sync_api import sync_playwright
+from profile_loader import load_profile, profile_arg
+from metro_url import build_url
 
-DELAY_MIN = 3.0   # мин. пауза между страницами (сек)
-DELAY_MAX = 6.0   # макс. пауза
+cfg, data_dir = load_profile(profile_arg())
 
-import sys
-single = "--single" in sys.argv
+single    = "--single" in sys.argv
 limit_arg = next((int(a.split("=")[1]) for a in sys.argv if a.startswith("--limit=")), None)
 pages_arg = next((int(a.split("=")[1]) for a in sys.argv if a.startswith("--pages=")), None)
-cmd = ["python3", "metro_url.py"] + (["--single"] if single else [])
-result = subprocess.run(cmd, capture_output=True, text=True)
-url = [l for l in result.stdout.splitlines() if l.startswith("https://")][0]
-print(f"{'[TEST: одна станция — Bemowo] ' if single else ''}URL: {url[:80]}...\n")
+
+stations = cfg.TRANSIT_POINTS[:1] if single else list(cfg.TRANSIT_POINTS)
+url, _ = build_url(cfg, stations)
+print(f"{'[TEST: одна точка] ' if single else ''}URL: {url[:80]}...\n")
 
 
 def parse_num(text):
@@ -25,7 +25,7 @@ def parse_num(text):
         return None
 
 
-seen_urls = {}  # глобальная дедупликация по href
+seen_urls = {}
 
 def collect(page, new_items):
     for art in page.query_selector_all("article"):
@@ -53,17 +53,14 @@ def collect(page, new_items):
 PANEL = "[data-cy='search.map.listing.organic']"
 
 def scroll_and_collect(page):
-    """Скроллит панель виртуального списка, ждёт рендера новых карточек."""
     new_items = []
-
     while len(new_items) < 36:
         prev_count = len(new_items)
         page.evaluate(f'document.querySelector("{PANEL}").scrollTop += 3000')
-        page.wait_for_timeout(1200)  # ждём рендер виртуального списка
+        page.wait_for_timeout(1200)
         collect(page, new_items)
         if len(new_items) == prev_count:
-            break  # новых нет — конец списка на этой странице
-
+            break
     return new_items
 
 def get_total_pages(page):
@@ -107,7 +104,7 @@ with sync_playwright() as p:
             break
         if pages_arg and p_num > pages_arg:
             break
-        delay = random.uniform(DELAY_MIN, DELAY_MAX)
+        delay = random.uniform(cfg.DELAY_MIN, cfg.DELAY_MAX)
         print(f"  пауза {delay:.1f}с...", end=" ", flush=True)
         time.sleep(delay)
 
@@ -123,18 +120,12 @@ with sync_playwright() as p:
 
 listings.sort(key=lambda x: x["price_m2_num"] or float("inf"))
 
-with open("data/listings.json", "w", encoding="utf-8") as f:
+with open(data_dir / "listings.json", "w", encoding="utf-8") as f:
     json.dump(listings, f, ensure_ascii=False, indent=2)
 
-with open("data/listings.csv", "w", newline="", encoding="utf-8") as f:
+with open(data_dir / "listings.csv", "w", newline="", encoding="utf-8") as f:
     writer = csv.DictWriter(f, fieldnames=["price", "area", "price_m2", "price_m2_num", "url"])
     writer.writeheader()
     writer.writerows(listings)
 
-print(f"\nИтого: {len(listings)} объявлений → listings.json, listings.csv")
-print(f"\n{'Цена':>15}  {'Площадь':>8}  {'zł/м²':>14}  Ссылка")
-print("-" * 95)
-for l in listings[:20]:
-    print(f"{l['price']:>15}  {l['area']:>8}  {l['price_m2']:>14}  {l['url'][:55]}")
-if len(listings) > 20:
-    print(f"  ... ещё {len(listings) - 20}")
+print(f"\nИтого: {len(listings)} объявлений → {data_dir}/listings.json")

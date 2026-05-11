@@ -1,16 +1,14 @@
 import math, urllib.parse, sys, subprocess
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
-from config import (METRO_STATIONS, RADIUS_M, AREA_MIN, AREA_MAX, YEAR_MIN,
-                    BUILDING_MATERIALS, EXTRAS, TRANSACTION, PROPERTY_TYPE,
-                    SORT_BY, SORT_DIR)
+from profile_loader import load_profile, profile_arg
 
-TARGET_POINTS = 200  # макс. точек в полигоне (технический параметр)
+TARGET_POINTS = 200
 
 
-def make_circle(lat, lon, n=32):
-    lat_deg = RADIUS_M / 111320
-    lon_deg = RADIUS_M / (111320 * math.cos(math.radians(lat)))
+def make_circle(lat, lon, radius_m, n=32):
+    lat_deg = radius_m / 111320
+    lon_deg = radius_m / (111320 * math.cos(math.radians(lat)))
     return Polygon([(lon + lon_deg * math.sin(2*math.pi*i/n),
                      lat + lat_deg * math.cos(2*math.pi*i/n)) for i in range(n)])
 
@@ -33,8 +31,8 @@ def encode_polyline(points):
     return res
 
 
-def build_url(stations):
-    union = unary_union([make_circle(lat, lon) for lat, lon in stations])
+def build_url(cfg, stations):
+    union = unary_union([make_circle(lat, lon, cfg.RADIUS_M) for lat, lon in stations])
     if union.geom_type != 'Polygon':
         for buf in [0.001, 0.003, 0.005, 0.01]:
             merged = union.buffer(buf).buffer(-buf)
@@ -65,25 +63,29 @@ def build_url(stations):
     lats = [p[0] for p in coords]; lons = [p[1] for p in coords]
     bbox = f"{min(lons)},{max(lats)},{max(lons)},{min(lats)}"
 
-    materials = urllib.parse.quote("[" + ",".join(BUILDING_MATERIALS) + "]")
-    extras    = urllib.parse.quote("[" + ",".join(EXTRAS) + "]")
-    params = (
-        f"limit=36&ownerTypeSingleSelect=ALL&by={SORT_BY}&direction={SORT_DIR}&viewType=map"
-        f"&areaMin={AREA_MIN}&areaMax={AREA_MAX}"
-        f"&buildYearMin={YEAR_MIN}"
-        f"&buildingMaterial={materials}"
-        f"&extras={extras}"
-        f"&mapBounds={urllib.parse.quote(bbox)}&geometry={urllib.parse.quote(encoded)}"
-    )
-    return (f"https://www.otodom.pl/pl/wyniki/{TRANSACTION}/{PROPERTY_TYPE}/mazowieckie/warszawa/warszawa/warszawa?{params}",
-            len(coords))
+    # Строим параметры из SEARCH_PARAMS профиля
+    sp = cfg.SEARCH_PARAMS
+    parts = ["ownerTypeSingleSelect=ALL", "viewType=map"]
+    for key, val in sp.items():
+        if isinstance(val, list):
+            parts.append(f"{key}={urllib.parse.quote('[' + ','.join(val) + ']')}")
+        else:
+            parts.append(f"{key}={val}")
+    parts.append(f"mapBounds={urllib.parse.quote(bbox)}")
+    parts.append(f"geometry={urllib.parse.quote(encoded)}")
+
+    city = cfg.CITY
+    voi  = cfg.VOIVODESHIP
+    base = (f"https://www.otodom.pl/pl/wyniki/{cfg.TRANSACTION}/{cfg.PROPERTY_TYPE}"
+            f"/{voi}/{city}/{city}/{city}")
+    return f"{base}?{'&'.join(parts)}", len(coords)
 
 
-stations = METRO_STATIONS[:1] if "--single" in sys.argv else list(METRO_STATIONS)
-
-url, pts = build_url(stations)
-print(f"Points: {pts}")
-print(url)
-
-subprocess.run("pbcopy", input=url.encode(), check=True)
-print("URL copied to clipboard")
+if __name__ == "__main__":
+    cfg, _ = load_profile(profile_arg())
+    stations = cfg.TRANSIT_POINTS[:1] if "--single" in sys.argv else list(cfg.TRANSIT_POINTS)
+    url, pts = build_url(cfg, stations)
+    print(f"Points: {pts}")
+    print(url)
+    subprocess.run("pbcopy", input=url.encode(), check=True)
+    print("URL copied to clipboard")
