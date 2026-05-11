@@ -34,7 +34,7 @@ def encode_polyline(points):
 def build_url(cfg, stations):
     union = unary_union([make_circle(lat, lon, cfg.RADIUS_M) for lat, lon in stations])
     if union.geom_type != 'Polygon':
-        for buf in [0.001, 0.003, 0.005, 0.01]:
+        for buf in [0.0001, 0.0003, 0.0005, 0.001, 0.003, 0.005, 0.01]:
             merged = union.buffer(buf).buffer(-buf)
             if merged.geom_type == 'Polygon':
                 union = merged
