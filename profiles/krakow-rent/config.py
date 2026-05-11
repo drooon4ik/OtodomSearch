@@ -71,20 +71,21 @@ POI_WEIGHTS = {
 }
 
 DISTRICT_SCORE = {
-    # Топ — исторический центр, атмосфера, инфраструктура
-    "Stare Miasto":     1.00,
-    "Kazimierz":        0.98,
-    "Zwierzyniec":      0.97,  # тихий, зелёный, у Błonia
-    "Salwator":         0.95,
-    # Хорошие жилые кварталы у университетов и парков
-    "Krowodrza":        0.92,
-    "Bronowice":        0.90,
-    "Dębniki":          0.88,
-    "Ruczaj":           0.85,  # современный, у кампуса UJ
+    # Топ — тихие зелёные районы, комфорт для жизни
+    "Zwierzyniec":      1.00,  # тихий, зелёный, у Błonia и Lasu Wolskiego
+    "Salwator":         0.98,
+    "Krowodrza":        0.95,
+    "Bronowice":        0.93,
+    "Dębniki":          0.90,
+    "Ruczaj":           0.87,  # современный, у кампуса UJ
+    # Хорошие, но оживлённее
     "Grzegórzki":       0.83,
     "Podgórze":         0.80,
     "Zabłocie":         0.78,
-    # Норма
+    # Туристические — шум, толпы, особенно летом
+    "Kazimierz":        0.65,
+    "Stare Miasto":     0.55,  # худший для жизни — туристы круглый год
+    # Норма / спальные
     "Prądnik Czerwony": 0.70,
     "Prądnik Biały":    0.68,
     "Łagiewniki":       0.65,
