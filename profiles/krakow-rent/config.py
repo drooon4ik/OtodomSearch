@@ -26,9 +26,8 @@ TRANSIT_POINTS = [
     # Zwierzyniec / Salwator — тихий, зелёный, у Błonia и Lasu Wolskiego
     (50.0600, 19.9100),  # Salwator
     (50.0630, 19.9050),  # Zwierzyniec
-    # Dębniki — правый берег Вислы, тихо, парковки есть, рядом UJ Ruczaj
+    # Dębniki — правый берег Вислы, тихо, парковки есть
     (50.0450, 19.9250),  # Dębniki centrum
-    (50.0380, 19.9150),  # Ruczaj — у нового кампуса UJ
     # Grzegórzki — компромисс: близко к центру, есть парковки во дворах
     (50.0600, 19.9600),  # Rondo Grzegórzeckie
     (50.0650, 19.9700),  # Grzegórzki / Mogilska
