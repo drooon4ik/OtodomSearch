@@ -9,7 +9,7 @@ APPLY_RENOVATION_COST = False  # для аренды ремонт не учит�
 
 SEARCH_PARAMS = {
     "areaMin":  45,
-    "areaMax":  60,
+    "areaMax":  80,
     "extras":   ["PARKING"],  # только квартиры с паркоместом
 }
 
@@ -68,15 +68,15 @@ POI_EXCLUDE_NAMES = ["żabka"]
 
 # ── Скоринг (личное проживание: цена, парковка учтена фильтром, POI сбалансирован) ──
 SCORING_WEIGHTS = {
-    "price_m2_eff": 0.40,
-    "center_dist":  0.08,
-    "build_year":   0.07,
+    "price_m2_eff": 0.20,
+    "center_dist":  0.15,  # транспортная доступность важнее для жизни
+    "build_year":   0.00,
     "floor":        0.10,
-    "poi":          0.10,  # повышен — супермаркет + университет важны
+    "poi":          0.18,  # супермаркет + парк + университет
     "material":     0.05,
     "market":       0.02,
-    "desc":         0.10,  # балкон/тихий двор важны для жизни
-    "district":     0.08,
+    "desc":         0.18,  # балкон/тихий двор/сад важны для жизни
+    "district":     0.12,  # район важен для качества жизни
 }
 
 POI_WEIGHTS = {
@@ -86,40 +86,63 @@ POI_WEIGHTS = {
 }
 
 DISTRICT_SCORE = {
-    # Топ — тихие, зелёные, престижные
-    "Wola Justowska":   1.00,  # лес, элитный, тихо
-    "Przegorzały":      0.98,  # над Вислой, лесистый
-    "Zwierzyniec":      0.97,  # Błonia, Las Wolski
-    "Salwator":         0.95,
-    # Хорошие жилые
-    "Krowodrza":        0.90,
-    "Bronowice":        0.88,
-    "Dębniki":          0.87,
-    "Kobierzyn":        0.85,  # тихо, зелено, доступно
-    "Łagiewniki":       0.82,  # лес, санктуарий, тихо
-    # Спальные зелёные
-    "Prądnik Czerwony": 0.75,
-    "Prądnik Biały":    0.73,
-    # Оживлённее
-    "Grzegórzki":       0.60,  # шум от Tauron Arena и трасс
-    "Podgórze":         0.75,
-    "Zabłocie":         0.72,
-    # Туристические — шум
-    "Kazimierz":        0.60,
-    "Stare Miasto":     0.50,
-    # Далеко
-    "Nowa Huta":        0.40,
-    "Mistrzejowice":    0.45,
-    "Bieńczyce":        0.43,
+    # 💎 Элитный
+    "Wola Justowska":          0.98,
+    "Salwator":                0.96,
+    "Zwierzyniec":             0.94,
+    "Zakrzówek":               0.92,
+    # ✨ Высокий
+    "Czarna Wieś":             0.88,
+    "Stara Krowodrza":         0.89,
+    "Bronowice Małe":          0.87,
+    "Wesoła":                  0.88,
+    "Dębniki":                 0.86,
+    "Bronowice":               0.85,
+    "Zabłocie":                0.82,
+    # 🏙️ Современный
+    "Stare Podgórze":          0.81,
+    "Ludwinów":                0.81,
+    "Prądnik Biały":           0.78,
+    "Prądnik Czerwony":        0.78,
+    # ✅ Хороший средний
+    "Olsza":                   0.75,
+    "Rakowice":                0.75,
+    "Łobzów":                  0.73,
+    "Nowa Wieś":               0.73,
+    "Pychowice":               0.74,
+    "Krowodrza":               0.70,
+    "Krowodrza Górka":         0.71,
+    "Żabiniec":                0.70,
+    "Grzegórzki":              0.72,
+    # 🧱 Базовый
+    "Podgórze Duchackie":      0.68,
+    "Bonarka":                 0.68,
+    "Ruczaj":                  0.66,
+    # 🏰 Исторический
+    "Stare Miasto":            0.64,
+    "Centrum":                 0.64,
+    "Śródmieście":             0.56,
+    "Nowy Świat":              0.56,
+    "Kazimierz":               0.60,
+    "Górka Narodowa":          0.62,
+    "Azory":                   0.58,
+    # 🏭 Промышленный / Удалённый
+    "Łagiewniki":              0.55,
+    "Łagiewniki-Borek Fałęcki":0.55,
+    "Swoszowice":              0.50,
+    "Borek Fałęcki":           0.48,
+    # Остальные краковские
+    "Podgórze":                0.69,
+    "Bieżanów-Prokocim":       0.72,
+    "Mistrzejowice":           0.67,
+    "Bieńczyce":               0.64,
+    "Czyżyny":                 0.59,
+    "Nowa Huta":               0.74,
 }
 
 # ── Сигналы из объявления (дополнение к config_base.DESC_SIGNALS) ────────────
 # Переопределяет config_base при наличии — score.py мёржит профильные поверх базовых
-DESC_SIGNALS_EXTRA = {
-    "ogrodek": ("desc", r"ogr[oó]d|ogr[oó]dek|taras przy gruncie", 0.40),  # садик = большой плюс
-    "widok":   ("desc", r"widok na (rzek|park|las|wisł)",           0.30),  # вид на природу
-    "cisza":   ("desc", r"cicha okolica|spokojna okolica|bez ruchu", 0.20),
-}
+DESC_SIGNALS_EXTRA = {}
 
 # ── Полигон ───────────────────────────────────────────────────────────────────
 RADIUS_M = 900

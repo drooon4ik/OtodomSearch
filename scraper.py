@@ -40,12 +40,19 @@ def collect(page, new_items):
         price_txt = next((s for s in spans if s.endswith("zł") or "zł/mies" in s), "?")
         area_txt  = next((s for s in spans if s.endswith("m²") and "/" not in s), "?")
         ppm_txt   = next((s for s in spans if "zł/m²" in s), "?")
+        czynsz_txt = next((s for s in spans if "czynsz" in s.lower()), "")
+        rent_num   = parse_num(price_txt)
+        czynsz_num = parse_num(czynsz_txt) if czynsz_txt else None
         item = {
-            "price":        price_txt,
-            "area":         area_txt,
-            "price_m2":     ppm_txt,
-            "price_m2_num": parse_num(ppm_txt),
-            "url":          f"https://www.otodom.pl{href}",
+            "price":          price_txt,
+            "czynsz":         czynsz_txt,
+            "rent_num":       rent_num,
+            "czynsz_num":     czynsz_num,
+            "total_rent_num": (rent_num + czynsz_num) if (rent_num and czynsz_num) else rent_num,
+            "area":           area_txt,
+            "price_m2":       ppm_txt,
+            "price_m2_num":   parse_num(ppm_txt),
+            "url":            f"https://www.otodom.pl{href}",
         }
         seen_urls[href] = item
         new_items.append(item)
@@ -57,6 +64,7 @@ def scroll_and_collect(page):
     while len(new_items) < 36:
         prev_count = len(new_items)
         page.evaluate(f'document.querySelector("{PANEL}").scrollTop += 3000')
+        page.evaluate('window.scrollBy(0, 1000)')
         page.wait_for_timeout(1200)
         collect(page, new_items)
         if len(new_items) == prev_count:
@@ -122,7 +130,7 @@ with open(data_dir / "listings.json", "w", encoding="utf-8") as f:
     json.dump(listings, f, ensure_ascii=False, indent=2)
 
 with open(data_dir / "listings.csv", "w", newline="", encoding="utf-8") as f:
-    writer = csv.DictWriter(f, fieldnames=["price", "area", "price_m2", "price_m2_num", "url"])
+    writer = csv.DictWriter(f, fieldnames=["price", "czynsz", "rent_num", "czynsz_num", "total_rent_num", "area", "price_m2", "price_m2_num", "url"])
     writer.writeheader()
     writer.writerows(listings)
 

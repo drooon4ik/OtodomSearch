@@ -3,7 +3,7 @@
 """
 import json, csv, math, re, datetime
 from profile_loader import load_profile, profile_arg
-from config_base import RENOVATION_COST, MATERIAL_SCORE, DESC_SIGNALS as _BASE_DESC_SIGNALS
+from config_base import RENOVATION_COST, MATERIAL_SCORE, DESC_SIGNALS as _BASE_DESC_SIGNALS, AGENCY_FEE_MONTHS, DEFAULT_CZYNSZ
 
 cfg, data_dir = load_profile(profile_arg())
 # Мёрж: профильные сигналы поверх базовых
@@ -71,11 +71,28 @@ except FileNotFoundError:
 # ── Сырые метрики ─────────────────────────────────────────────────────────────
 for item in listings:
     area = float(str(item.get("area","0")).replace(",",".").split()[0]) or 1
-    price_str = str(item.get("price","0")).split("\n")[0].replace("\xa0","").replace(" ","").replace("zł/mies.","").replace("zł","").replace(",",".")
+    price_raw = str(item.get("price","0")).replace("\xa0","").replace(" ","")
+    rent_str = price_raw.split("\n")[0].replace("zł/mies.","").replace("zł","").replace(",",".")
     try:
-        price_num = float(price_str) if price_str not in ("","?") else 0.0
+        rent_num = float(rent_str) if rent_str not in ("","?") else 0.0
     except ValueError:
-        price_num = 0.0
+        rent_num = 0.0
+    czynsz_match = re.search(r"czynsz[:\s]*([\d\s]+)zł", price_raw, re.IGNORECASE)
+    czynsz_num = float(re.sub(r"\s","", czynsz_match.group(1))) if czynsz_match else 0.0
+    czynsz_default = not czynsz_num and getattr(cfg, "TRANSACTION", "") == "wynajem"
+    if czynsz_default:
+        czynsz_num = DEFAULT_CZYNSZ
+    price_num = rent_num + czynsz_num
+    item["total_rent_num"] = price_num if czynsz_num else None
+    item["czynsz_default"] = czynsz_default
+
+    # Комиссия агентства: если упомянута (и не "bez prowizji") — +1 месяц / AGENCY_FEE_MONTHS
+    desc = str(item.get("description", ""))
+    has_agency_fee = (re.search(r"prowizj", desc, re.IGNORECASE)
+                      and not re.search(r"bez prowizji|brak prowizji", desc, re.IGNORECASE))
+    agency_monthly = (price_num / AGENCY_FEE_MONTHS) if has_agency_fee else 0.0
+    item["_agency_monthly"] = round(agency_monthly)
+    price_num += agency_monthly
 
     condition = item.get("condition", "do zamieszkania")
     reno_cost = RENOVATION_COST.get(condition, 500) if getattr(cfg, "APPLY_RENOVATION_COST", True) else 0
@@ -122,7 +139,7 @@ for item in listings:
     mat = str(item.get("material") or "").lower()
     item["_material_score"] = MATERIAL_SCORE.get(mat, 0.65)
     item["_market_score"]   = 0.6 if item.get("market") == "pierwotny" else 1.0
-    item["_district_score"] = DISTRICT_SCORE.get(item.get("district",""), 0.75)
+    item["_district_score"] = DISTRICT_SCORE.get(item.get("district",""), 0)
 
     features = item.get("features") or []
     desc = item.get("description") or ""
@@ -132,6 +149,10 @@ for item in listings:
             else bool(re.search(pattern, desc)))
     )
     item["_desc_score"] = min(raw_desc, 1.0)
+
+    # Лифт важен если этаж 3+
+    if item.get("_floor_num", 0) >= 3 and any(re.search(r"winda", f) for f in features):
+        item["_desc_score"] = min(item["_desc_score"] + 0.30, 1.0)
 
 # ── Нормализация ──────────────────────────────────────────────────────────────
 def col(key): return [item[key] for item in listings]
@@ -165,10 +186,12 @@ for i, item in enumerate(listings):
 listings.sort(key=lambda x: x["score"], reverse=True)
 
 # ── Вывод ─────────────────────────────────────────────────────────────────────
-print(f"\n{'#':>2}  {'Score':>6}  {'Цена':>12}  {'Эфф.цена/м²':>12}  {'До центра':>9}  {'Год':>4}  {'Район'}")
-print("-" * 110)
+print(f"\n{'#':>2}  {'Score':>6}  {'Цена':>12}  {'Итого/мес':>10}  {'Эфф.цена/м²':>12}  {'До центра':>9}  {'Год':>4}  {'Район'}")
+print("-" * 120)
 for i, l in enumerate(listings, 1):
-    print(f"{i:>2}  {l['score']:>6.3f}  {l['price']:>12}  {l['effective_price_m2']:>12,} zł/м²  "
+    total = l.get("total_rent_num")
+    total_str = f"{int(total):,} zł".replace(",", " ") if total else "-"
+    print(f"{i:>2}  {l['score']:>6.3f}  {l['price'].split(chr(10))[0]:>12}  {total_str:>10}  {l['effective_price_m2']:>12,} zł/м²  "
           f"{l['center_dist_m']:>8}м  {l['build_year']:>4}  {l.get('district','')}")
     if has_poi and l.get("_nearest_supermarket"):
         poi_parts = [f"{l[f'_nearest_{cat}'].get('name','?')[:20]} {l[f'_d_{cat}']:.0f}м"
@@ -176,10 +199,11 @@ for i, l in enumerate(listings, 1):
         print(f"      POI: {'  |  '.join(poi_parts)}")
 
 # ── Сохранение ────────────────────────────────────────────────────────────────
-FIELDS = ["score","s_price","s_center","s_year","s_floor","s_poi","s_material","s_market","s_desc","s_district",
-          "price","area","price_m2","effective_price_m2","reno_cost_total",
-          "center_dist_m","district","rooms","floor","floors_total",
-          "build_year","material","condition","building_type","market","lat","lon","url"]
+FIELDS = ["score",
+          "price", "czynsz", "total_rent_num", "area", "effective_price_m2",
+          "s_desc", "s_poi", "s_center", "s_district", "s_price", "s_floor",
+          "district", "center_dist_m",
+          "url"]
 
 with open(data_dir / "scored.json", "w", encoding="utf-8") as f:
     json.dump(listings, f, ensure_ascii=False, indent=2)

@@ -1,5 +1,11 @@
 # Константы общие для всех профилей
 
+# Комиссия агентства амортизируется на N месяцев (стандарт PL = 1 месяц аренды)
+AGENCY_FEE_MONTHS = 12
+
+# Дефолтный чинж если не указан (медиана по рынку)
+DEFAULT_CZYNSZ = 800
+
 RENOVATION_COST = {
     "do remontu":      4150,
     "do wykończenia":  3150,
@@ -25,11 +31,5 @@ MATERIAL_SCORE = {
 }
 
 DESC_SIGNALS = {
-    "balkon":       ("features", r"balkon",                    0.30),
-    "loggia":       ("features", r"loggi",                     0.20),
-    "taras":        ("features", r"taras",                     0.35),
-    "komorka":      ("features", r"piwnic|kom[oó]rk",          0.20),
-    "klimatyzacja": ("features", r"klimatyz",                  0.20),
-    "dwustronne":   ("desc",     r"dwustronn",                 0.25),
-    "ciche":        ("desc",     r"cich[ae]|spokojna|spokojn", 0.20),
+    "dwustronne":   ("desc",     r"dwustronn",                 0.50),
 }
